@@ -45,3 +45,6 @@ unsafe-fixes   = true
 
     [lint.isort]
         split-on-trailing-comma = false
+
+    [lint.pydocstyle]
+        convention = "google"
