@@ -240,11 +240,7 @@ class DictSpider:
                     category_path,
                 )
 
-    def _download_category(
-        self,
-        category: str,
-        category_167: bool = False,  # noqa: FBT001, FBT002
-    ) -> None:
+    def _download_category(self, category: str, *, category_167: bool = False) -> None:
         category_url = "https://pinyin.sogou.com/dict/cate/index/" + category
         soup = BeautifulSoup(self._get_html(category_url).text, "html.parser")
         if not category_167:
@@ -288,7 +284,7 @@ class DictSpider:
                 str(a_tag.get("href") if a_tag is not None else None).rpartition("/")[
                     -1
                 ],
-                True,  # noqa: FBT003
+                category_167=True,
             )
 
     def _download_category_0(self) -> None:
