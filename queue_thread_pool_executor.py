@@ -37,7 +37,7 @@ class QueueThreadPoolExecutor(Executor):
         for _ in range(self._max_workers):
             Thread(target=self._executor, daemon=True).start()
 
-    def _terminate_threads(self, wait: bool = True) -> None:  # noqa: FBT001, FBT002
+    def _terminate_threads(self, wait: bool = True) -> None:  # ruff: ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
         self._shutting_down = True
 
         for _ in range(self._max_workers):
@@ -47,7 +47,7 @@ class QueueThreadPoolExecutor(Executor):
 
     def shutdown(
         self,
-        wait: bool = True,  # noqa: FBT001, FBT002
+        wait: bool = True,  # ruff: ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
         *,
         cancel_futures: bool = False,
     ) -> None:
@@ -122,7 +122,7 @@ class QueueThreadPoolExecutor(Executor):
                 if not future.set_running_or_notify_cancel():
                     continue
                 result = fn(*args, **kwargs)
-            except BaseException as exc:  # noqa: BLE001
+            except BaseException as exc:  # ruff: ignore[blind-except]
                 future.set_exception(exc)
             else:
                 future.set_result(result)

@@ -15,33 +15,34 @@ unsafe-fixes   = true
 [lint]
     future-annotations = true
     ignore = [
-        "COM812",
-        "COM819",
-        "CPY001",
-        "D203",
-        "D206",
-        "D207",
-        "D208",
-        "D212",
-        "D300",
-        "E111",
-        "E114",
-        "E117",
-        "PLR0913",
-        "PLR0917",
-        "Q000",
-        "Q001",
-        "Q002",
-        "Q003",
-        "Q004",
-        "S404",
-        "S602",
-        "S603",
-        "W191",
+        "missing-trailing-comma",
+        "prohibited-trailing-comma",
+        "missing-copyright-notice",
+        "incorrect-blank-line-before-class",
+        "docstring-tab-indentation",
+        "under-indentation",
+        "over-indentation",
+        "multi-line-summary-first-line",
+        "triple-single-quotes",
+        "indentation-with-invalid-multiple",
+        "indentation-with-invalid-multiple-comment",
+        "over-indented",
+        "too-many-arguments",
+        "too-many-positional-arguments",
+        "bad-quotes-inline-string",
+        "bad-quotes-multiline-string",
+        "bad-quotes-docstring",
+        "avoidable-escaped-quote",
+        "unnecessary-escaped-quote",
+        "suspicious-subprocess-import",
+        "subprocess-popen-with-shell-equals-true",
+        "subprocess-without-shell-equals-true",
+        "tab-indentation",
+        "too-many-statements-in-try-clause",
     ]
     select = ["ALL"]
     typing-extensions = false
-    unfixable = ["T201"]
+    unfixable = ["print"]
 
     [lint.isort]
         split-on-trailing-comma = false
