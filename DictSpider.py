@@ -48,7 +48,6 @@ class DictSpider:
         concurrent_downloads: int | None = None,
         max_retries: int | None = None,
         timeout: float | None = None,
-        headers: dict[str, str] | None = None,
     ) -> None:
         """
         Initialize the DictSpider.
@@ -63,7 +62,6 @@ class DictSpider:
             max_retries (int | None): Maximum number of retries for
                 HTTP requests.
             timeout (float | None): Timeout for HTTP requests in seconds.
-            headers (dict[str, str] | None): HTTP headers to use for requests.
 
         """
         self.categories = categories
@@ -75,24 +73,6 @@ class DictSpider:
         )
         self.max_retries = 20 if max_retries is None else max(0, max_retries)
         self.timeout = 60 if timeout is None else timeout
-        self.headers = (
-            headers
-            if headers is not None
-            else {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:60.0) "
-                    "Gecko/20100101 Firefox/60.0"
-                ),
-                "Accept": (
-                    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-                ),
-                "Accept-Language": (
-                    "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2"
-                ),
-                "Accept-Encoding": "gzip, deflate",
-                "Connection": "keep-alive",
-            }
-        )
         self._stats = {"downloaded": 0, "skipped": 0, "failed": 0}
         self._thread_local = threading.local()
         self._sessions: list[requests.Session] = []
@@ -173,9 +153,7 @@ class DictSpider:
             before_sleep=tenacity.before_sleep_log(log, logging.WARNING),
         )
         def _attempt() -> requests.Response:
-            response = self._get_session().get(
-                url, headers=self.headers, timeout=self.timeout
-            )
+            response = self._get_session().get(url, timeout=self.timeout)
             response.raise_for_status()
             if not response.content:
                 msg = f"Empty content for {url}"
