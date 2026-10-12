@@ -1,6 +1,6 @@
 builtins       = ["_"]
 preview        = true
-target-version = "py314"
+target-version = "py315"
 unsafe-fixes   = true
 
 [analyze]

@@ -8,11 +8,11 @@ build_rime: sougou.dict.yaml
 
 sougou.source.fcitx:
 	test -d sougou_dict || { echo The sougou_dict folder does not exist!; exit 1; }
-	ImeWlConverterCmd -i:scel sougou_dict -o:libimetxt sougou.source.fcitx
+	ImeWlConverterCmd -i scel -o libimetxt -O sougou.source.fcitx sougou_dict/*/*.scel
 
 sougou.source.rime:
 	test -d sougou_dict || { echo The sougou_dict folder does not exist!; exit 1; }
-	ImeWlConverterCmd -i:scel sougou_dict -o:rime sougou.source.rime
+	ImeWlConverterCmd -i scel -o rime -O sougou.source.rime sougou_dict/*/*.scel
 
 sougou.dict: sougou.source.fcitx
 	libime_pinyindict sougou.source.fcitx sougou.dict
