@@ -3,8 +3,6 @@
 # See the LICENSE file for more information.
 """thread pool executor implementation using a queue for task management."""
 
-from __future__ import annotations
-
 from concurrent.futures import Executor, Future
 from queue import Empty, Queue
 from threading import Thread

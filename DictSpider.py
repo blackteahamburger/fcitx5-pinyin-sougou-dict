@@ -12,8 +12,6 @@ dictionaries from Sougou input method websites, supporting parallel downloads,
 exclusion lists, and category selection.
 """
 
-from __future__ import annotations
-
 import argparse
 import contextlib
 import logging
@@ -32,7 +30,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterable
     from concurrent.futures import Future
     from types import TracebackType
-
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -262,7 +259,7 @@ class DictSpider:
             else:
                 try:
                     page_n = int(pages[-2].get_text(strip=True)) + 1
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     page_n = DictSpider.MIN_PAGE_CATEGORY
         for page in range(1, page_n):
             self._submit(
