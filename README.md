@@ -1,8 +1,6 @@
 Sougou Pinyin dictionary for Fcitx5 and RIME.
 
-Raw Sougou pinyin dictionaries are automatically updated and released monthly by Github Action with `SougouDictSpider.py`.
-
-Dictionaries are also automatically built and released monthly for fcitx5 and rime by Github Action.
+Downloaded, built and released monthly by Github Action.
 
 ## Installation
 
