@@ -358,7 +358,7 @@ if __name__ == "__main__":
         nargs="+",
         help="List of category indices to be downloaded.\n"
         "Categories are not separated to their subcategories.\n"
-        "Special category 0 is for dictionaries"
+        "Special category 0 is for dictionaries "
         "that do not belong to any categories.\n"
         "Download all categories (including 0) by default.",
         metavar="CATEGORY",
