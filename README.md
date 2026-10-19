@@ -17,7 +17,7 @@ Download latest version of `sougou.dict` from release and copy into `~/.local/sh
 Download latest version of `sougou.dict.yaml` from release and copy into `~/.local/share/fcitx5/rime/` for [fcitx5-rime](https://github.com/fcitx/fcitx5-rime) or `~/.config/ibus/rime/` for [ibus-rime](https://github.com/rime/ibus-rime) (create the folder if it does not exist).
 
 ### Manual Build
-You need to download Sougou dictionaries first with `SougouDictSpider.py` or from release and make sure the dictionaries are put in `sougou_dict` directory.
+You need to download Sougou dictionaries first with `SougouDictSpider.py` (requirements to run: >=python-3.14, requests, beautifulsoup4, tenacity) or from release and make sure the dictionaries are put in `sougou_dict` directory.
 
 Build requirement: [>=imewlconverter-3.4.3](https://github.com/studyzy/imewlconverter) (make sure `ImeWlConverterCmd` is added to `PATH`)
 
