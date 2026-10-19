@@ -324,9 +324,9 @@ class DictSpider:
     def _report_stats(self) -> int:
         log.info("")
         log.info("---- Dictionary Download Summary ----")
-        log.info("downloaded=%d", self._stats.get("downloaded", 0))
-        log.info("skipped=%d", self._stats.get("skipped", 0))
-        log.info("failed=%d", self._stats.get("failed", 0))
+        log.info("downloaded=%d", self._stats["downloaded"])
+        log.info("skipped=%d", self._stats["skipped"])
+        log.info("failed=%d", self._stats["failed"])
         log.info("")
         log.info("---- Detailed Exception Summary ----")
         failures = 0
