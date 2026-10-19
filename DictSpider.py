@@ -24,7 +24,7 @@ import requests
 import tenacity
 from bs4 import BeautifulSoup
 
-import queue_thread_pool_executor
+from queue_thread_pool_executor import QueueThreadPoolExecutor
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterable
@@ -74,7 +74,7 @@ class DictSpider:
         self._stats = {"downloaded": 0, "skipped": 0, "failed": 0}
         self._thread_local = threading.local()
         self._sessions: list[requests.Session] = []
-        self._executor = queue_thread_pool_executor.QueueThreadPoolExecutor(
+        self._executor = QueueThreadPoolExecutor(
             max(1, concurrent_downloads or min(32, (os.cpu_count() or 1) * 5))
         )
         self._lock = threading.Lock()
