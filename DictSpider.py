@@ -18,7 +18,7 @@ import logging
 import os
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Final, Self
 
 import requests
 import tenacity
@@ -38,7 +38,7 @@ log.addHandler(logging.NullHandler())
 class DictSpider:
     """A spider for downloading Sougou dictionaries."""
 
-    MIN_PAGE_CATEGORY = 2
+    MIN_PAGE_CATEGORY: Final = 2
 
     def __init__(
         self,
@@ -66,8 +66,10 @@ class DictSpider:
         """
         self.categories = categories
         self.save_path = save_path or Path("sougou_dict")
-        self.exclude_list: set[str] = (
-            set(exclude_list) if exclude_list is not None else set()
+        self.exclude_list = (
+            set(exclude_list)
+            if exclude_list is not None
+            else {"2775", "15946", "176476"}
         )
         self.max_retries = 20 if max_retries is None else max(0, max_retries)
         self.timeout = 60 if timeout is None else timeout
@@ -365,7 +367,8 @@ if __name__ == "__main__":
         "--exclude",
         "-e",
         nargs="+",
-        help="List of dictionary indices to exclude downloading.",
+        help="List of dictionary indices to exclude downloading.\n"
+        "Default: 2775, 15946, 176476 (nonexistent dictionaries)",
         metavar="DICTIONARY",
     )
     parser.add_argument(
