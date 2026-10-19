@@ -1,4 +1,3 @@
-builtins       = ["_"]
 preview        = true
 target-version = "py314"
 unsafe-fixes   = true
@@ -13,7 +12,6 @@ unsafe-fixes   = true
 	skip-magic-trailing-comma = true
 
 [lint]
-	future-annotations = true
 	ignore = [
 		"avoidable-escaped-quote",
 		"bad-quotes-docstring",
