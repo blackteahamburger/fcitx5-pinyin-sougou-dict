@@ -1,4 +1,4 @@
-# Modified from https://stackoverflow.com/a/79059059
+# Reconstructed from https://stackoverflow.com/a/79059059
 #
 # See the LICENSE file for more information.
 """thread pool executor implementation using a queue for task management."""

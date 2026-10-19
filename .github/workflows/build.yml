@@ -28,7 +28,7 @@ jobs:
         run: pip install beautifulsoup4 requests tenacity
 
       - name: Fetch
-        run: python DictSpider.py
+        run: python SougouDictSpider.py
 
       - name: Prepare Environment for Build
         run: |

@@ -5,9 +5,9 @@
 # See the LICENSE file for more information.
 
 """
-DictSpider: A spider for downloading Sougou dictionaries.
+SougouDictSpider: A spider for downloading Sougou dictionaries.
 
-This module provides the DictSpider class, which can download and organize
+This module provides the SougouDictSpider class, which can download and organize
 dictionaries from Sougou input method websites, supporting parallel downloads,
 exclusion lists, and category selection.
 """
@@ -18,7 +18,7 @@ import logging
 import os
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Self
+from typing import TYPE_CHECKING, Self
 
 import requests
 import tenacity
@@ -35,10 +35,10 @@ log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
-class DictSpider:
+class SougouDictSpider:
     """A spider for downloading Sougou dictionaries."""
 
-    MIN_PAGE_CATEGORY: Final = 2
+    MIN_PAGE_CATEGORY = 2
 
     def __init__(
         self,
@@ -48,9 +48,11 @@ class DictSpider:
         concurrent_downloads: int | None = None,
         max_retries: int | None = None,
         timeout: float | None = None,
+        *,
+        force: bool = False,
     ) -> None:
         """
-        Initialize the DictSpider.
+        Initialize the SougouDictSpider.
 
         Args:
             categories (Iterable[str] | None):
@@ -62,6 +64,7 @@ class DictSpider:
             max_retries (int | None): Maximum number of retries for
                 HTTP requests.
             timeout (float | None): Timeout for HTTP requests in seconds.
+            force (bool): If True, force re-download of existing files.
 
         """
         self.categories = categories
@@ -73,6 +76,7 @@ class DictSpider:
         )
         self.max_retries = 20 if max_retries is None else max(0, max_retries)
         self.timeout = 60 if timeout is None else timeout
+        self.force = force
         self._stats = {"downloaded": 0, "skipped": 0, "failed": 0}
         self._thread_local = threading.local()
         self._sessions: list[requests.Session] = []
@@ -89,7 +93,7 @@ class DictSpider:
         Automatically starts the download process when entering the context.
 
         Returns:
-            Self: The DictSpider instance itself.
+            Self: The SougouDictSpider instance itself.
 
         """
         self._executor.__enter__()
@@ -125,7 +129,7 @@ class DictSpider:
                 for s in self._sessions:
                     s.close()
         if failures:
-            msg = f"Application finished with {failures} failures."
+            msg = f"Downloading finished with {failures} failures."
             raise RuntimeError(msg) from exc
         return rv
 
@@ -168,7 +172,7 @@ class DictSpider:
 
     def _download(self, name: str, url: str, category_path: Path) -> None:
         file_path = category_path / name
-        if file_path.is_file():
+        if not self.force and file_path.is_file():
             log.warning("%s already exists, skipping...", file_path)
             with self._lock:
                 self._stats["skipped"] += 1
@@ -229,16 +233,16 @@ class DictSpider:
             category_path = self.save_path / "城市信息大全_167"
         page_list = soup.select_one("div#dict_page_list")
         if page_list is None:
-            page_n = DictSpider.MIN_PAGE_CATEGORY
+            page_n = SougouDictSpider.MIN_PAGE_CATEGORY
         else:
             pages = page_list.select("a")
-            if len(pages) < DictSpider.MIN_PAGE_CATEGORY:
-                page_n = DictSpider.MIN_PAGE_CATEGORY
+            if len(pages) < SougouDictSpider.MIN_PAGE_CATEGORY:
+                page_n = SougouDictSpider.MIN_PAGE_CATEGORY
             else:
                 try:
                     page_n = int(pages[-2].get_text(strip=True)) + 1
                 except TypeError, ValueError:
-                    page_n = DictSpider.MIN_PAGE_CATEGORY
+                    page_n = SougouDictSpider.MIN_PAGE_CATEGORY
         for page in range(1, page_n):
             self._submit(
                 self._download_page,
@@ -394,7 +398,15 @@ if __name__ == "__main__":
         metavar="SEC",
     )
     parser.add_argument(
+        "--force",
+        "-f",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Force re-download of existing files.\nDefault: False",
+    )
+    parser.add_argument(
         "--debug",
+        "-D",
         action=argparse.BooleanOptionalAction,
         default=False,
         help="Output debug info.\nDefault: False",
@@ -404,12 +416,13 @@ if __name__ == "__main__":
         format="%(levelname)s:%(message)s",
         level=logging.DEBUG if args.debug else logging.INFO,
     )
-    with DictSpider(
+    with SougouDictSpider(
         args.categories,
         args.directory,
         args.exclude,
         args.concurrent_downloads,
         args.max_retries,
         args.timeout,
+        force=args.force,
     ) as dict_spider:
         dict_spider.download_dicts()

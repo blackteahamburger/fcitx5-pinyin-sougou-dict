@@ -1,8 +1,6 @@
 Sougou Pinyin dictionary for Fcitx5 and RIME.
 
-**Note: You may check [baidu](https://github.com/blackteahamburger/fcitx5-pinyin-sougou-dict/tree/baidu) branch for deprecated Baidu pinyin dictionary support. Check [here](https://github.com/studyzy/imewlconverter/issues/381) for reason.**
-
-Raw Sougou pinyin dictionaries are automatically updated and released monthly by Github Action with `DictSpider.py` (modified from [Sougou_dict_spider](https://github.com/StuPeter/Sougou_dict_spider)).
+Raw Sougou pinyin dictionaries are automatically updated and released monthly by Github Action with `SougouDictSpider.py`.
 
 Dictionaries are also automatically built and released monthly for fcitx5 and rime by Github Action.
 
@@ -21,7 +19,7 @@ Download latest version of `sougou.dict` from release and copy into `~/.local/sh
 Download latest version of `sougou.dict.yaml` from release and copy into `~/.local/share/fcitx5/rime/` for [fcitx5-rime](https://github.com/fcitx/fcitx5-rime) or `~/.config/ibus/rime/` for [ibus-rime](https://github.com/rime/ibus-rime) (create the folder if it does not exist).
 
 ### Manual Build
-You need to download Sougou dictionaries first with `DictSpider.py` or from release and make sure the dictionaries are put in `sougou_dict` directory.
+You need to download Sougou dictionaries first with `SougouDictSpider.py` or from release and make sure the dictionaries are put in `sougou_dict` directory.
 
 Build requirement: [>=imewlconverter-3.4.3](https://github.com/studyzy/imewlconverter) (make sure `ImeWlConverterCmd` is added to `PATH`)
 
