@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Modified from https://github.com/StuPeter/Sougou_dict_spider/blob/master/SougouSpider.py
+# Reconstructed from https://github.com/StuPeter/Sougou_dict_spider/blob/master/SougouSpider.py
 #
 # See the LICENSE file for more information.
 
