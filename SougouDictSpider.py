@@ -292,30 +292,28 @@ class SougouDictSpider:
                     dict_td_title.get("href") if dict_td_title is not None else ""
                 ).rpartition("/")[-1]
                 + ".scel",
-                "https:" + str(dl_a.get("href") if dl_a is not None else None),
+                "https:" + str(dl_a.get("href") if dl_a is not None else ""),
                 category_path,
             )
 
     def download_dicts(self) -> None:
         """Download dictionaries."""
-        if self.categories is None:
 
-            def _iter_categories() -> Generator[str]:
-                yield "0"
-                for category in BeautifulSoup(
-                    self._get_html("https://pinyin.sogou.com/dict/").text, "html.parser"
-                ).select("div.dict_category_list_title"):
-                    a_tag = category.select_one("a")
-                    yield (
-                        str(a_tag.get("href") if a_tag is not None else "")
-                        .partition("?")[0]
-                        .rpartition("/")[-1]
-                    )
+        def _iter_categories() -> Generator[str]:
+            yield "0"
+            for category in BeautifulSoup(
+                self._get_html("https://pinyin.sogou.com/dict/").text, "html.parser"
+            ).select("div.dict_category_list_title"):
+                a_tag = category.select_one("a")
+                yield (
+                    str(a_tag.get("href") if a_tag is not None else "")
+                    .partition("?")[0]
+                    .rpartition("/")[-1]
+                )
 
-            iterable = _iter_categories()
-        else:
-            iterable = self.categories
-        for category in iterable:
+        for category in (
+            _iter_categories() if self.categories is None else self.categories
+        ):
             if category == "0":
                 self._submit(self._download_category_0)
             elif category == "167":
