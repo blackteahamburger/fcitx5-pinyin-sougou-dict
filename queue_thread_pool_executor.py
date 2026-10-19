@@ -3,6 +3,7 @@
 # See the LICENSE file for more information.
 """thread pool executor implementation using a queue for task management."""
 
+import contextlib
 from concurrent.futures import Executor, Future
 from queue import Empty, Queue
 from threading import Thread
@@ -60,7 +61,7 @@ class QueueThreadPoolExecutor(Executor):
 
         """
         if cancel_futures:
-            try:
+            with contextlib.suppress(Empty):
                 while True:
                     task = self._task_queue.get_nowait()
                     if task is None:
@@ -72,8 +73,6 @@ class QueueThreadPoolExecutor(Executor):
                         future.cancel()
                     finally:
                         self._task_queue.task_done()
-            except Empty:
-                pass
 
         if wait:
             self._task_queue.join()

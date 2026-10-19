@@ -4,48 +4,47 @@ target-version = "py314"
 unsafe-fixes   = true
 
 [analyze]
-    preview = true
+	preview = true
 
 [format]
-    docstring-code-format     = true
-    line-ending               = "lf"
-    preview                   = true
-    skip-magic-trailing-comma = true
+	docstring-code-format     = true
+	line-ending               = "lf"
+	preview                   = true
+	skip-magic-trailing-comma = true
 
 [lint]
-    future-annotations = true
-    ignore = [
-        "missing-trailing-comma",
-        "prohibited-trailing-comma",
-        "missing-copyright-notice",
-        "incorrect-blank-line-before-class",
-        "docstring-tab-indentation",
-        "under-indentation",
-        "over-indentation",
-        "multi-line-summary-first-line",
-        "triple-single-quotes",
-        "indentation-with-invalid-multiple",
-        "indentation-with-invalid-multiple-comment",
-        "over-indented",
-        "too-many-arguments",
-        "too-many-positional-arguments",
-        "bad-quotes-inline-string",
-        "bad-quotes-multiline-string",
-        "bad-quotes-docstring",
-        "avoidable-escaped-quote",
-        "unnecessary-escaped-quote",
-        "suspicious-subprocess-import",
-        "subprocess-popen-with-shell-equals-true",
-        "subprocess-without-shell-equals-true",
-        "tab-indentation",
-        "too-many-statements-in-try-clause",
-    ]
-    select = ["ALL"]
-    typing-extensions = false
-    unfixable = ["print"]
+	future-annotations = true
+	ignore = [
+		"avoidable-escaped-quote",
+		"bad-quotes-docstring",
+		"bad-quotes-inline-string",
+		"bad-quotes-multiline-string",
+		"docstring-tab-indentation",
+		"incorrect-blank-line-before-class",
+		"indentation-with-invalid-multiple",
+		"indentation-with-invalid-multiple-comment",
+		"missing-copyright-notice",
+		"missing-trailing-comma",
+		"multi-line-summary-first-line",
+		"over-indentation",
+		"over-indented",
+		"prohibited-trailing-comma",
+		"subprocess-popen-with-shell-equals-true",
+		"subprocess-without-shell-equals-true",
+		"suspicious-subprocess-import",
+		"tab-indentation",
+		"too-many-arguments",
+		"too-many-positional-arguments",
+		"triple-single-quotes",
+		"under-indentation",
+		"unnecessary-escaped-quote",
+	]
+	select = ["ALL"]
+	typing-extensions = false
+	unfixable = ["print"]
 
-    [lint.isort]
-        split-on-trailing-comma = false
+	[lint.isort]
+		split-on-trailing-comma = false
 
-    [lint.pydocstyle]
-        convention = "google"
+	[lint.pydocstyle]
+		convention = "google"
