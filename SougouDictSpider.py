@@ -188,8 +188,8 @@ class SougouDictSpider:
                 self._stats["downloaded"] += 1
             log.info("%s downloaded successfully.", name)
 
-    @classmethod
-    def _sanitize(cls, raw: str) -> str:
+    @staticmethod
+    def _sanitize(raw: str) -> str:
         return raw.translate(
             str.maketrans({"/": "-", ",": "-", "|": "-", "\\": "-", "'": "-"})
         )
