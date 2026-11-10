@@ -298,23 +298,24 @@ class SougouDictSpider:
                 category_path,
             )
 
+    def _download_category_list(self) -> Generator[str]:
+        yield "0"
+        for category in BeautifulSoup(
+            self._get_html("https://pinyin.sogou.com/dict/").text, "html.parser"
+        ).select("div.dict_category_list_title"):
+            a_tag = category.select_one("a")
+            yield (
+                (str(a_tag.get("href")) if a_tag is not None else "")
+                .partition("?")[0]
+                .rpartition("/")[-1]
+            )
+
     def download_dicts(self) -> None:
         """Download dictionaries."""
-
-        def _iter_categories() -> Generator[str]:
-            yield "0"
-            for category in BeautifulSoup(
-                self._get_html("https://pinyin.sogou.com/dict/").text, "html.parser"
-            ).select("div.dict_category_list_title"):
-                a_tag = category.select_one("a")
-                yield (
-                    (str(a_tag.get("href")) if a_tag is not None else "")
-                    .partition("?")[0]
-                    .rpartition("/")[-1]
-                )
-
         for category in (
-            _iter_categories() if self.categories is None else self.categories
+            self._download_category_list()
+            if self.categories is None
+            else self.categories
         ):
             if category == "0":
                 self._submit(self._download_category_0)
