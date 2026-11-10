@@ -200,8 +200,8 @@ class SougouDictSpider:
         ).select("div.dict_detail_block"):
             title_div = dict_td.select_one("div.detail_title")
             dict_td_title = title_div.select_one("a") if title_div is not None else None
-            dict_td_id = str(
-                dict_td_title.get("href") if dict_td_title is not None else ""
+            dict_td_id = (
+                str(dict_td_title.get("href")) if dict_td_title is not None else ""
             ).rpartition("/")[-1]
             if dict_td_id not in self.exclude_list:
                 dl_div = dict_td.select_one("div.dict_dl_btn")
@@ -260,7 +260,9 @@ class SougouDictSpider:
             a_tag = category_td.select_one("a")
             self._submit(
                 self._download_category,
-                str(a_tag.get("href") if a_tag is not None else "").rpartition("/")[-1],
+                (str(a_tag.get("href")) if a_tag is not None else "").rpartition("/")[
+                    -1
+                ],
                 category_167=True,
             )
 
@@ -288,11 +290,11 @@ class SougouDictSpider:
                     (dict_td_title.string if dict_td_title is not None else "") or ""
                 )
                 + "_"
-                + str(
-                    dict_td_title.get("href") if dict_td_title is not None else ""
+                + (
+                    str(dict_td_title.get("href")) if dict_td_title is not None else ""
                 ).rpartition("/")[-1]
                 + ".scel",
-                "https:" + str(dl_a.get("href") if dl_a is not None else ""),
+                "https:" + str(dl_a.get("href")) if dl_a is not None else "",
                 category_path,
             )
 
@@ -306,7 +308,7 @@ class SougouDictSpider:
             ).select("div.dict_category_list_title"):
                 a_tag = category.select_one("a")
                 yield (
-                    str(a_tag.get("href") if a_tag is not None else "")
+                    (str(a_tag.get("href")) if a_tag is not None else "")
                     .partition("?")[0]
                     .rpartition("/")[-1]
                 )
