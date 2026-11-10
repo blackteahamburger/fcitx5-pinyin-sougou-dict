@@ -13,7 +13,6 @@ exclusion lists, and category selection.
 """
 
 import argparse
-import contextlib
 import logging
 import os
 import threading
@@ -65,7 +64,6 @@ class SougouDictSpider:
                 HTTP requests.
             timeout (float | None): Timeout for HTTP requests in seconds.
             force (bool): If True, force re-download of existing files.
-
         """
         self.categories = categories
         self.save_path = save_path or Path("sougou_dict")
@@ -85,53 +83,7 @@ class SougouDictSpider:
         )
         self._lock = threading.Lock()
         self._futures: list[Future[object]] = []
-
-    def __enter__(self) -> Self:
-        """
-        Enter the runtime context related to this object.
-
-        Automatically starts the download process when entering the context.
-
-        Returns:
-            Self: The SougouDictSpider instance itself.
-
-        """
-        self._executor.__enter__()
-        return self
-
-    def __exit__(
-        self,
-        typ: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ) -> bool | None:
-        """
-        Exit the runtime context and clean up resources.
-
-        Args:
-            typ (type[BaseException] | None): Exception type, if any.
-            exc (BaseException | None): Exception instance, if any.
-            tb (TracebackType | None): Traceback, if any.
-
-        Returns:
-            bool | None: The return value from the executor's __exit__ method.
-
-        Raises:
-            RuntimeError: If there were any failures during the download.
-
-        """
-        try:
-            rv = self._executor.__exit__(typ, exc, tb)
-        finally:
-            failures = 0
-            with contextlib.suppress(Exception):
-                failures = self._report_stats()
-                for s in self._sessions:
-                    s.close()
-        if failures:
-            msg = f"Downloading finished with {failures} failures."
-            raise RuntimeError(msg) from exc
-        return rv
+        self._shutdown = False
 
     def _submit(
         self, fn: Callable[..., object], /, *args: object, **kwargs: object
@@ -311,7 +263,15 @@ class SougouDictSpider:
             )
 
     def download_dicts(self) -> None:
-        """Download dictionaries."""
+        """
+        Download dictionaries.
+
+        Raises:
+            RuntimeError: If the spider has been shut down.
+        """
+        if self._shutdown:
+            msg = "Cannot download dictionaries after shutdown."
+            raise RuntimeError(msg)
         for category in (
             self._download_category_list()
             if self.categories is None
@@ -341,6 +301,50 @@ class SougouDictSpider:
         if not failures:
             log.info("No exceptions occurred during the download process.")
         return failures
+
+    def shutdown(self) -> None:
+        """
+        Shutdown the spider.
+
+        Raises:
+            RuntimeError: If there were failures during the download process.
+        """
+        self._shutdown = True
+        self._executor.shutdown(wait=True)
+        for s in self._sessions:
+            s.close()
+        if failures := self._report_stats():
+            msg = f"Downloading finished with {failures} failures."
+            raise RuntimeError(msg)
+
+    def __enter__(self) -> Self:
+        """
+        Enter the runtime context related to this object.
+
+        Returns:
+            Self: The SougouDictSpider instance itself.
+        """
+        return self
+
+    def __exit__(
+        self,
+        typ: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool:
+        """
+        Exit the runtime context and clean up resources.
+
+        Args:
+            typ (type[BaseException] | None): Exception type, if any.
+            exc (BaseException | None): Exception instance, if any.
+            tb (TracebackType | None): Traceback, if any.
+
+        Returns:
+            bool: False to indicate that exceptions should not be suppressed.
+        """
+        self.shutdown()
+        return False
 
 
 if __name__ == "__main__":
