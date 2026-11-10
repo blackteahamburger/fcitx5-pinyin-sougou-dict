@@ -5,7 +5,7 @@
 # See the LICENSE file for more information.
 
 """
-SougouDictSpider: A spider for downloading Sougou dictionaries.
+sougou_dict_spider: A spider for downloading Sougou dictionaries.
 
 This module provides the SougouDictSpider class, which can download and organize
 dictionaries from Sougou input method websites, supporting parallel downloads,
