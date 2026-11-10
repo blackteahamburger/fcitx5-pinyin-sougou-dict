@@ -284,7 +284,7 @@ class SougouDictSpider:
             dl_a = dl_div.select_one("a") if dl_div is not None else None
             self._submit(
                 self._download,
-                self._sanitize(
+                SougouDictSpider._sanitize(
                     (dict_td_title.string if dict_td_title is not None else "") or ""
                 )
                 + "_"
