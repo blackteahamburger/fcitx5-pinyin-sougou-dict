@@ -32,12 +32,12 @@ class QueueThreadPoolExecutor(Executor):
             tuple[Callable[..., Any], tuple[Any, ...], dict[str, object], Future[Any]]
             | None
         ] = Queue()
-        self._shutting_down = False
+        self._shutdown = False
         for _ in range(self._max_workers):
             Thread(target=self._executor, daemon=True).start()
 
     def _terminate_threads(self, wait: bool = True) -> None:  # ruff: ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
-        self._shutting_down = True
+        self._shutdown = True
 
         for _ in range(self._max_workers):
             self._task_queue.put(None)
@@ -100,7 +100,7 @@ class QueueThreadPoolExecutor(Executor):
             begins terminating threads and no longer accepts new tasks.
 
         """
-        if self._shutting_down:
+        if self._shutdown:
             msg = "cannot schedule new futures after shutdown"
             raise RuntimeError(msg)
 
