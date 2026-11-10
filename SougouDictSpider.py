@@ -313,7 +313,8 @@ class SougouDictSpider:
         self._executor.shutdown(wait=True)
         for s in self._sessions:
             s.close()
-        if failures := self._report_stats():
+        failures = self._report_stats()
+        if failures:
             msg = f"Downloading finished with {failures} failures."
             raise RuntimeError(msg)
 
