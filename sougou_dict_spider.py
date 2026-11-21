@@ -12,7 +12,6 @@ dictionaries from Sougou input method websites, supporting parallel downloads,
 exclusion lists, and category selection.
 """
 
-import argparse
 import itertools
 import logging
 import os
@@ -358,6 +357,8 @@ class SougouDictSpider:
 
 
 if __name__ == "__main__":
+    import argparse
+
     parser = argparse.ArgumentParser(
         description="A Sougou dictionary spider.",
         formatter_class=argparse.RawTextHelpFormatter,
