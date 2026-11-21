@@ -13,6 +13,7 @@ exclusion lists, and category selection.
 """
 
 import argparse
+import itertools
 import logging
 import os
 import threading
@@ -26,7 +27,7 @@ from bs4 import BeautifulSoup
 from queue_thread_pool_executor import QueueThreadPoolExecutor
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable
+    from collections.abc import Callable, Iterable
     from concurrent.futures import Future
     from types import TracebackType
 
@@ -70,7 +71,7 @@ class SougouDictSpider:
         self._exclude_list = (
             frozenset(exclude_list)
             if exclude_list is not None
-            else frozenset({"2775", "15946", "176476"})
+            else frozenset(("2775", "15946", "176476"))
         )
         self._max_retries = 20 if max_retries is None else max_retries
         self._timeout = 60.0 if timeout is None else timeout
@@ -250,17 +251,25 @@ class SougouDictSpider:
                 category_path,
             )
 
-    def _download_category_list(self) -> Generator[str]:
-        yield "0"
-        for category in BeautifulSoup(
-            self._get_html("https://pinyin.sogou.com/dict/").text, "html.parser"
-        ).select("div.dict_category_list_title"):
-            a_tag = category.select_one("a")
-            yield (
-                (str(a_tag.get("href")) if a_tag is not None else "")
-                .partition("?")[0]
-                .rpartition("/")[-1]
+    def _download_category_list(self) -> frozenset[str]:
+        return frozenset(
+            itertools.chain(
+                "0",
+                (
+                    (
+                        str(a_tag.get("href"))
+                        if (a_tag := category.select_one("a")) is not None
+                        else ""
+                    )
+                    .partition("?")[0]
+                    .rpartition("/")[-1]
+                    for category in BeautifulSoup(
+                        self._get_html("https://pinyin.sogou.com/dict/").text,
+                        "html.parser",
+                    ).select("div.dict_category_list_title")
+                ),
             )
+        )
 
     def download_dicts(self) -> None:
         """
