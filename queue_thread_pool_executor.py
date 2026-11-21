@@ -52,7 +52,6 @@ class QueueThreadPoolExecutor(Executor):
             have not yet started executing. Defaults to False.
 
         """
-        self._shutdown = True
         if cancel_futures:
             with contextlib.suppress(Empty):
                 while True:
@@ -70,6 +69,7 @@ class QueueThreadPoolExecutor(Executor):
         if wait:
             self._task_queue.join()
 
+        self._shutdown = True
         for _ in range(self._max_workers):
             self._task_queue.put(None)
             if wait:
