@@ -65,16 +65,16 @@ class SougouDictSpider:
             timeout (float | None): Timeout for HTTP requests in seconds.
             force (bool): If True, force re-download of existing files.
         """
-        self.categories = categories
-        self.save_path = save_path or Path("sougou_dict")
-        self.exclude_list = (
-            set(exclude_list)
+        self._categories = frozenset(categories) if categories is not None else None
+        self._save_path = save_path or Path("sougou_dict")
+        self._exclude_list = (
+            frozenset(exclude_list)
             if exclude_list is not None
-            else {"2775", "15946", "176476"}
+            else frozenset({"2775", "15946", "176476"})
         )
-        self.max_retries = 20 if max_retries is None else max(0, max_retries)
-        self.timeout = 60 if timeout is None else timeout
-        self.force = force
+        self._max_retries = 20 if max_retries is None else max_retries
+        self._timeout = 60.0 if timeout is None else timeout
+        self._force = force
         self._stats = {"downloaded": 0, "skipped": 0, "failed": 0}
         self._thread_local = threading.local()
         self._sessions: list[requests.Session] = []
@@ -103,13 +103,13 @@ class SougouDictSpider:
     def _get_html(self, url: str) -> requests.Response:
 
         @tenacity.retry(
-            stop=tenacity.stop_after_attempt(self.max_retries + 1),
+            stop=tenacity.stop_after_attempt(self._max_retries + 1),
             wait=tenacity.wait_exponential(multiplier=1, max=60),
             retry=tenacity.retry_if_exception_type(requests.RequestException),
             before_sleep=tenacity.before_sleep_log(log, logging.WARNING),
         )
         def _attempt() -> requests.Response:
-            response = self._get_session().get(url, timeout=self.timeout)
+            response = self._get_session().get(url, timeout=self._timeout)
             response.raise_for_status()
             if not response.content:
                 msg = f"Empty content for {url}"
@@ -124,7 +124,7 @@ class SougouDictSpider:
 
     def _download(self, name: str, url: str, category_path: Path) -> None:
         file_path = category_path / name
-        if not self.force and file_path.is_file():
+        if not self._force and file_path.is_file():
             log.warning("%s already exists, skipping...", file_path)
             with self._lock:
                 self._stats["skipped"] += 1
@@ -155,7 +155,7 @@ class SougouDictSpider:
             dict_td_id = (
                 str(dict_td_title.get("href")) if dict_td_title is not None else ""
             ).rpartition("/")[-1]
-            if dict_td_id not in self.exclude_list:
+            if dict_td_id not in self._exclude_list:
                 dl_div = dict_td.select_one("div.dict_dl_btn")
                 dl_a = dl_div.select_one("a") if dl_div is not None else None
                 self._submit(
@@ -177,12 +177,12 @@ class SougouDictSpider:
         if not category_167:
             title_tag = soup.select_one("title")
             title_text = title_tag.get_text(strip=True) if title_tag is not None else ""
-            category_path = self.save_path / (
+            category_path = self._save_path / (
                 title_text.partition("_")[0] + "_" + category
             )
             category_path.mkdir(parents=True, exist_ok=True)
         else:
-            category_path = self.save_path / "城市信息大全_167"
+            category_path = self._save_path / "城市信息大全_167"
         page_list = soup.select_one("div#dict_page_list")
         if page_list is None:
             page_n = SougouDictSpider.MIN_PAGE_CATEGORY
@@ -207,7 +207,7 @@ class SougouDictSpider:
             self._get_html("https://pinyin.sogou.com/dict/cate/index/180").text,
             "html.parser",
         )
-        (self.save_path / "城市信息大全_167").mkdir(parents=True, exist_ok=True)
+        (self._save_path / "城市信息大全_167").mkdir(parents=True, exist_ok=True)
         for category_td in soup.select("div.citylistcate"):
             a_tag = category_td.select_one("a")
             self._submit(
@@ -223,7 +223,7 @@ class SougouDictSpider:
             self._get_html("https://pinyin.sogou.com/dict/detail/index/4").text,
             "html.parser",
         )
-        category_path = self.save_path / "未分类_0"
+        category_path = self._save_path / "未分类_0"
         category_path.mkdir(parents=True, exist_ok=True)
         self._submit(
             self._download,
@@ -274,8 +274,8 @@ class SougouDictSpider:
             raise RuntimeError(msg)
         for category in (
             self._download_category_list()
-            if self.categories is None
-            else self.categories
+            if self._categories is None
+            else self._categories
         ):
             if category == "0":
                 self._submit(self._download_category_0)
