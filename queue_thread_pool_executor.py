@@ -36,14 +36,6 @@ class QueueThreadPoolExecutor(Executor):
         for _ in range(self._max_workers):
             Thread(target=self._executor, daemon=True).start()
 
-    def _terminate_threads(self, wait: bool = True) -> None:  # ruff: ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
-        self._shutdown = True
-
-        for _ in range(self._max_workers):
-            self._task_queue.put(None)
-        if wait:
-            self._task_queue.join()
-
     def shutdown(
         self,
         wait: bool = True,  # ruff: ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
@@ -60,6 +52,7 @@ class QueueThreadPoolExecutor(Executor):
             have not yet started executing. Defaults to False.
 
         """
+        self._shutdown = True
         if cancel_futures:
             with contextlib.suppress(Empty):
                 while True:
@@ -77,7 +70,10 @@ class QueueThreadPoolExecutor(Executor):
         if wait:
             self._task_queue.join()
 
-        self._terminate_threads(wait=wait)
+        for _ in range(self._max_workers):
+            self._task_queue.put(None)
+            if wait:
+                self._task_queue.join()
 
     def submit(
         self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs
