@@ -33,7 +33,7 @@ class SougouDictSpider:
     DEFAULT_TIMEOUT = 60.0
     DEFAULT_CONCURRENT_DOWNLOADS = min(32, (os.cpu_count() or 1) * 5)
 
-    MIN_PAGE_CATEGORY = 2
+    _MIN_PAGE_CATEGORY = 2
 
     def __init__(
         self,
@@ -206,16 +206,16 @@ class SougouDictSpider:
             category_path = self._save_path / "城市信息大全_167"
         page_list = soup.select_one("div#dict_page_list")
         if page_list is None:
-            page_n = SougouDictSpider.MIN_PAGE_CATEGORY
+            page_n = SougouDictSpider._MIN_PAGE_CATEGORY
         else:
             pages = page_list.select("a")
-            if len(pages) < SougouDictSpider.MIN_PAGE_CATEGORY:
-                page_n = SougouDictSpider.MIN_PAGE_CATEGORY
+            if len(pages) < SougouDictSpider._MIN_PAGE_CATEGORY:
+                page_n = SougouDictSpider._MIN_PAGE_CATEGORY
             else:
                 try:
                     page_n = int(pages[-2].get_text(strip=True)) + 1
                 except TypeError, ValueError:
-                    page_n = SougouDictSpider.MIN_PAGE_CATEGORY
+                    page_n = SougouDictSpider._MIN_PAGE_CATEGORY
         for page in range(1, page_n):
             self._submit(
                 self._download_page,
