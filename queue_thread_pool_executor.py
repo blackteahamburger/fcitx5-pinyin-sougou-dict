@@ -1,6 +1,3 @@
-# Refactored from https://stackoverflow.com/a/79059059
-#
-# See the LICENSE file for more information.
 """A thread pool executor using a queue for task management."""
 
 import contextlib

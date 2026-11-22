@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-#
-# Refactored from https://github.com/StuPeter/Sougou_dict_spider/blob/master/SougouSpider.py
-#
-# See the LICENSE file for more information.
 
 """A spider for downloading Sougou dictionaries."""
 
