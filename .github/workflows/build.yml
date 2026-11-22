@@ -25,7 +25,7 @@ jobs:
           python-version: "3.15"
 
       - name: Prepare Environment for Fetch
-        run: pip install beautifulsoup4 requests tenacity
+        run: pip install beautifulsoup4 requests tenacity typeguard
 
       - name: Fetch
         run: python sougou_dict_spider_main.py
