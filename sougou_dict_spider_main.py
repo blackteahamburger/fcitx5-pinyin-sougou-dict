@@ -85,8 +85,8 @@ if __name__ == "__main__":
         "-E",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help="Output only error info.\nIgnored if --debug is specified."
-        "\nDefault: False",
+        help="Output only error info.\nIgnored if --debug is specified.\n"
+        "Default: False",
     )
     args = parser.parse_args()
     logging.basicConfig(
