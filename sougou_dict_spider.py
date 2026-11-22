@@ -4,12 +4,13 @@ import itertools
 import logging
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING, Self, cast
+from typing import TYPE_CHECKING, Self
 from urllib.parse import urljoin
 
 import requests
 import tenacity
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
+from typeguard import check_type
 
 from queue_thread_pool_executor import QueueThreadPoolExecutor
 
@@ -17,8 +18,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
     from concurrent.futures import Future
     from types import TracebackType
-
-    from bs4.element import Tag
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -153,22 +152,22 @@ class SougouDictSpider:
         for dict_td in BeautifulSoup(
             self._download_html(page_url).text, "html.parser"
         ).select("div.dict_detail_block"):
-            dict_td_title = cast("Tag", dict_td.select_one("div.detail_title a"))
-            dict_td_id = cast("str", dict_td_title.get("href")).rpartition("/")[-1]
+            dict_td_title = check_type(dict_td.select_one("div.detail_title a"), Tag)
+            dict_td_id = check_type(dict_td_title.get("href"), str).rpartition("/")[-1]
             if dict_td_id not in self._exclude_list:
                 self._submit(
                     self._download,
-                    SougouDictSpider._sanitize(cast("str", dict_td_title.string))
+                    SougouDictSpider._sanitize(check_type(dict_td_title.string, str))
                     + "_"
                     + dict_td_id
                     + ".scel",
                     urljoin(
                         page_url,
-                        cast(
-                            "str",
-                            cast("Tag", dict_td.select_one("div.dict_dl_btn a")).get(
-                                "href"
-                            ),
+                        check_type(
+                            check_type(
+                                dict_td.select_one("div.dict_dl_btn a"), Tag
+                            ).get("href"),
+                            str,
                         ),
                     ),
                     category_path,
@@ -187,7 +186,7 @@ class SougouDictSpider:
         soup = BeautifulSoup(self._download_html(category_url).text, "html.parser")
         if not sub_of_category_167:
             category_path = self._save_path / (
-                cast("Tag", soup.select_one("title"))
+                check_type(soup.select_one("title"), Tag)
                 .get_text(strip=True)
                 .partition("_")[0]
                 + f"_{category}"
@@ -214,8 +213,8 @@ class SougouDictSpider:
         for category_td in soup.select("div.citylistcate"):
             self._submit(
                 self._download_category,
-                cast(
-                    "str", cast("Tag", category_td.select_one("a")).get("href")
+                check_type(
+                    check_type(category_td.select_one("a"), Tag).get("href"), str
                 ).rpartition("/")[-1],
                 sub_of_category_167=True,
             )
@@ -232,20 +231,20 @@ class SougouDictSpider:
             category_path,
         )
         for dict_td in soup.select("div.rcmd_dict"):
-            dict_td_title = cast("Tag", dict_td.select_one("div.rcmd_dict_title a"))
+            dict_td_title = check_type(dict_td.select_one("div.rcmd_dict_title a"), Tag)
             self._submit(
                 self._download,
-                SougouDictSpider._sanitize(cast("str", dict_td_title.string))
+                SougouDictSpider._sanitize(check_type(dict_td_title.string, str))
                 + "_"
-                + cast("str", dict_td_title.get("href")).rpartition("/")[-1]
+                + check_type(dict_td_title.get("href"), str).rpartition("/")[-1]
                 + ".scel",
                 urljoin(
                     index_url,
-                    cast(
-                        "str",
-                        cast("Tag", dict_td.select_one("div.rcmd_dict_dl_btn a")).get(
-                            "href"
-                        ),
+                    check_type(
+                        check_type(
+                            dict_td.select_one("div.rcmd_dict_dl_btn a"), Tag
+                        ).get("href"),
+                        str,
                     ),
                 ),
                 category_path,
@@ -258,7 +257,9 @@ class SougouDictSpider:
             itertools.chain(
                 "0",
                 (
-                    cast("str", cast("Tag", category.select_one("a")).get("href"))
+                    check_type(
+                        check_type(category.select_one("a"), Tag).get("href"), str
+                    )
                     .partition("?")[0]
                     .rpartition("/")[-1]
                     for category in BeautifulSoup(
