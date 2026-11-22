@@ -135,7 +135,17 @@ class SougouDictSpider:
     @staticmethod
     def _sanitize(raw: str) -> str:
         return raw.translate(
-            str.maketrans({"/": "-", ",": "-", "|": "-", "\\": "-", "'": "-", ":": "-"})
+            str.maketrans({
+                "<": "-",
+                ">": "-",
+                ":": "-",
+                '"': "-",
+                "/": "-",
+                "\\": "-",
+                "|": "-",
+                "?": "-",
+                "*": "-",
+            })
         )
 
     def _download_page(self, page_url: str, category_path: Path) -> None:
