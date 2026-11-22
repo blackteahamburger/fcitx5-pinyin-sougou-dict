@@ -100,7 +100,7 @@ class SougouDictSpider:
             self._thread_local.session = session
         return session
 
-    def _get_html(self, url: str) -> requests.Response:
+    def _download_html(self, url: str) -> requests.Response:
 
         @tenacity.retry(
             stop=tenacity.stop_after_attempt(self._max_retries + 1),
@@ -130,7 +130,7 @@ class SougouDictSpider:
                 self._stats["skipped"] += 1
             return
         try:
-            file_path.write_bytes(self._get_html(url).content)
+            file_path.write_bytes(self._download_html(url).content)
         except Exception:
             with self._lock:
                 self._stats["failed"] += 1
@@ -148,7 +148,7 @@ class SougouDictSpider:
 
     def _download_page(self, page_url: str, category_path: Path) -> None:
         for dict_td in BeautifulSoup(
-            self._get_html(page_url).text, "html.parser"
+            self._download_html(page_url).text, "html.parser"
         ).select("div.dict_detail_block"):
             title_div = dict_td.select_one("div.detail_title")
             dict_td_title = title_div.select_one("a") if title_div is not None else None
@@ -171,10 +171,18 @@ class SougouDictSpider:
                     category_path,
                 )
 
-    def _download_category(self, category: str, *, category_167: bool = False) -> None:
+    def _download_category(
+        self, category: str, *, sub_of_category_167: bool = False
+    ) -> None:
+        if category == "0":
+            self._download_category_0()
+            return
+        if category == "167":
+            self._download_category_167()
+            return
         category_url = "https://pinyin.sogou.com/dict/cate/index/" + category
-        soup = BeautifulSoup(self._get_html(category_url).text, "html.parser")
-        if not category_167:
+        soup = BeautifulSoup(self._download_html(category_url).text, "html.parser")
+        if not sub_of_category_167:
             title_tag = soup.select_one("title")
             title_text = title_tag.get_text(strip=True) if title_tag is not None else ""
             category_path = self._save_path / (
@@ -204,7 +212,7 @@ class SougouDictSpider:
 
     def _download_category_167(self) -> None:
         soup = BeautifulSoup(
-            self._get_html("https://pinyin.sogou.com/dict/cate/index/180").text,
+            self._download_html("https://pinyin.sogou.com/dict/cate/index/180").text,
             "html.parser",
         )
         (self._save_path / "城市信息大全_167").mkdir(parents=True, exist_ok=True)
@@ -215,12 +223,12 @@ class SougouDictSpider:
                 (str(a_tag.get("href")) if a_tag is not None else "").rpartition("/")[
                     -1
                 ],
-                category_167=True,
+                sub_of_category_167=True,
             )
 
     def _download_category_0(self) -> None:
         soup = BeautifulSoup(
-            self._get_html("https://pinyin.sogou.com/dict/detail/index/4").text,
+            self._download_html("https://pinyin.sogou.com/dict/detail/index/4").text,
             "html.parser",
         )
         category_path = self._save_path / "未分类_0"
@@ -251,6 +259,8 @@ class SougouDictSpider:
             )
 
     def _download_category_list(self) -> frozenset[str]:
+        if self._categories is not None:
+            return self._categories
         return frozenset(
             itertools.chain(
                 "0",
@@ -263,7 +273,7 @@ class SougouDictSpider:
                     .partition("?")[0]
                     .rpartition("/")[-1]
                     for category in BeautifulSoup(
-                        self._get_html("https://pinyin.sogou.com/dict/").text,
+                        self._download_html("https://pinyin.sogou.com/dict/").text,
                         "html.parser",
                     ).select("div.dict_category_list_title")
                 ),
@@ -280,17 +290,8 @@ class SougouDictSpider:
         if self._shutdown:
             msg = "Cannot download dictionaries after shutdown."
             raise RuntimeError(msg)
-        for category in (
-            self._download_category_list()
-            if self._categories is None
-            else self._categories
-        ):
-            if category == "0":
-                self._submit(self._download_category_0)
-            elif category == "167":
-                self._submit(self._download_category_167)
-            else:
-                self._submit(self._download_category, category)
+        for category in self._download_category_list():
+            self._submit(self._download_category, category)
 
     def _report_stats(self) -> int:
         log.info("")

@@ -7,13 +7,10 @@ import contextlib
 from concurrent.futures import Executor, Future
 from queue import Empty, Queue
 from threading import Thread
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    P = ParamSpec("P")
-    T = TypeVar("T")
 
 
 class QueueThreadPoolExecutor(Executor):
@@ -25,7 +22,6 @@ class QueueThreadPoolExecutor(Executor):
 
         Args:
             max_workers (int): The number of worker threads in the pool.
-
         """
         self._max_workers = max_workers
         self._task_queue: Queue[
@@ -50,7 +46,6 @@ class QueueThreadPoolExecutor(Executor):
             before shutting down. Defaults to True.
             cancel_futures (bool): If True, cancel all pending futures that
             have not yet started executing. Defaults to False.
-
         """
         if cancel_futures:
             with contextlib.suppress(Empty):
@@ -75,7 +70,7 @@ class QueueThreadPoolExecutor(Executor):
             if wait:
                 self._task_queue.join()
 
-    def submit(
+    def submit[**P, T](
         self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs
     ) -> Future[T]:
         """
@@ -94,7 +89,6 @@ class QueueThreadPoolExecutor(Executor):
             executor allows submissions after ``shutdown()`` has been
             called; a ``RuntimeError`` is raised only once the executor
             begins terminating threads and no longer accepts new tasks.
-
         """
         if self._shutdown:
             msg = "cannot schedule new futures after shutdown"
