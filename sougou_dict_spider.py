@@ -308,6 +308,8 @@ class SougouDictSpider:
         Raises:
             RuntimeError: If there were failures during the download process.
         """
+        if self._shutdown:
+            return
         self._shutdown = True
         self._executor.shutdown(wait=True)
         for s in self._sessions:
