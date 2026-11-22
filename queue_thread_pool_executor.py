@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class QueueThreadPoolExecutor(Executor):
     """A thread pool executor using a queue for task management."""
 
-    def __init__(self, max_workers: int | None) -> None:
+    def __init__(self, max_workers: int | None = None) -> None:
         """
         Initialize a new QueueThreadPoolExecutor instance.
 
