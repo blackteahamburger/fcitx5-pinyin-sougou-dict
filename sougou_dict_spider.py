@@ -75,8 +75,8 @@ class SougouDictSpider:
         self._futures: list[Future[object]] = []
         self._shutdown = False
 
-    def _submit(
-        self, fn: Callable[..., object], /, *args: object, **kwargs: object
+    def _submit[**P, T](
+        self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs
     ) -> None:
         with self._lock:
             self._futures.append(self._executor.submit(fn, *args, **kwargs))
@@ -148,16 +148,16 @@ class SougouDictSpider:
             if dict_td_id not in self._exclude_list:
                 dl_div = dict_td.select_one("div.dict_dl_btn")
                 dl_a = dl_div.select_one("a") if dl_div is not None else None
+                href = dl_a.get("href") or "" if dl_a is not None else ""
                 self._submit(
                     self._download,
                     SougouDictSpider._sanitize(
-                        (dict_td_title.string if dict_td_title is not None else "")
-                        or ""
+                        dict_td_title.string or "" if dict_td_title is not None else ""
                     )
                     + "_"
                     + dict_td_id
                     + ".scel",
-                    dl_a.get("href") if dl_a is not None else None,
+                    href if isinstance(href, str) else "",
                     category_path,
                 )
 
@@ -237,7 +237,7 @@ class SougouDictSpider:
             self._submit(
                 self._download,
                 SougouDictSpider._sanitize(
-                    (dict_td_title.string if dict_td_title is not None else "") or ""
+                    dict_td_title.string or "" if dict_td_title is not None else ""
                 )
                 + "_"
                 + (
