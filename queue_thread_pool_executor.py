@@ -1,7 +1,7 @@
-# Reconstructed from https://stackoverflow.com/a/79059059
+# Refactored from https://stackoverflow.com/a/79059059
 #
 # See the LICENSE file for more information.
-"""thread pool executor implementation using a queue for task management."""
+"""A thread pool executor using a queue for task management."""
 
 import contextlib
 from concurrent.futures import Executor, Future

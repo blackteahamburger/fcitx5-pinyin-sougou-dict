@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
 #
-# Reconstructed from https://github.com/StuPeter/Sougou_dict_spider/blob/master/SougouSpider.py
+# Refactored from https://github.com/StuPeter/Sougou_dict_spider/blob/master/SougouSpider.py
 #
 # See the LICENSE file for more information.
 
-"""
-sougou_dict_spider: A spider for downloading Sougou dictionaries.
-
-This module provides the SougouDictSpider class, which can download and organize
-dictionaries from Sougou input method websites, supporting parallel downloads,
-exclusion lists, and category selection.
-"""
+"""A spider for downloading Sougou dictionaries."""
 
 import itertools
 import logging
