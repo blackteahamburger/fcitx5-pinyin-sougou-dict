@@ -31,7 +31,12 @@ class QueueThreadPoolExecutor(Executor):
             raise ValueError(msg)
         self._max_workers = max_workers
         self._task_queue: Queue[
-            tuple[Callable[..., Any], tuple[Any, ...], dict[str, object], Future[Any]]
+            tuple[
+                Callable[..., object],
+                tuple[object, ...],
+                dict[str, object],
+                Future[Any],
+            ]
             | None
         ] = Queue()
         self._shutdown = False
@@ -62,7 +67,7 @@ class QueueThreadPoolExecutor(Executor):
                 futures. Futures that are completed or running will not be
                 cancelled.
         """
-        cancelled_futures: list[Future[Any]] = []
+        cancelled_futures: list[Future[object]] = []
         with self._task_condition:
             if cancel_futures:
                 while True:
