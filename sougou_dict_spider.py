@@ -30,7 +30,7 @@ class SougouDictSpider:
     DEFAULT_EXCLUDE_LIST = frozenset(("2775", "15946", "176476"))
     DEFAULT_MAX_RETRIES = 20
     DEFAULT_TIMEOUT = 60.0
-    DEFAULT_FORCE = True
+    DEFAULT_FORCE = False
 
     def __init__(
         self,
