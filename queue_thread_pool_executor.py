@@ -62,7 +62,7 @@ class QueueThreadPoolExecutor(Executor):
                 futures have finished executing and the resources used by
                 the executor have been reclaimed, and submissions remain
                 open while outstanding tasks run, including submissions
-                from worker tasks. Otherwise submissions close immediately.
+                from worker tasks. If False then submissions close immediately.
             cancel_futures: If True then shutdown will cancel all pending
                 futures. Futures that are completed or running will not be
                 cancelled.
