@@ -191,7 +191,7 @@ class SougouDictSpider:
                 .partition("_")[0]
                 + f"_{category}"
             )
-            category_path.mkdir(parents=True, exist_ok=True)
+            category_path.mkdir(exist_ok=True)
         else:
             category_path = self._save_path / "城市信息大全_167"
         pages = soup.select("div#dict_page_list a")
@@ -209,7 +209,7 @@ class SougouDictSpider:
             self._download_html("https://pinyin.sogou.com/dict/cate/index/180").text,
             "html.parser",
         )
-        (self._save_path / "城市信息大全_167").mkdir(parents=True, exist_ok=True)
+        (self._save_path / "城市信息大全_167").mkdir(exist_ok=True)
         for category_td in soup.select("div.citylistcate"):
             self._submit(
                 self._download_category,
@@ -223,7 +223,7 @@ class SougouDictSpider:
         index_url = "https://pinyin.sogou.com/dict/detail/index/4"
         soup = BeautifulSoup(self._download_html(index_url).text, "html.parser")
         category_path = self._save_path / "未分类_0"
-        category_path.mkdir(parents=True, exist_ok=True)
+        category_path.mkdir(exist_ok=True)
         self._submit(
             self._download,
             "网络流行新词【官方推荐】_4.scel",
@@ -278,6 +278,7 @@ class SougouDictSpider:
         if self._shutdown:
             msg = "Cannot download dictionaries after shutdown."
             raise RuntimeError(msg)
+        self._save_path.mkdir(parents=True, exist_ok=True)
         for category in self._download_category_list():
             self._submit(self._download_category, category)
 
