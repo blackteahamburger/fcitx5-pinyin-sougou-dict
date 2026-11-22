@@ -109,7 +109,7 @@ class SougouDictSpider:
         try:
             return _attempt()
         except tenacity.RetryError:
-            log.exception("Failed to fetch %s", url)
+            log.exception("Failed to download %s", url)
             raise
 
     def _download(self, name: str, url: str, category_path: Path) -> None:
@@ -121,9 +121,11 @@ class SougouDictSpider:
             return
         try:
             file_path.write_bytes(self._download_html(url).content)
-        except Exception:
+        except Exception as e:
             with self._lock:
                 self._stats["failed"] += 1
+            if isinstance(e, OSError):
+                log.exception("Failed to save to %s", file_path)
             raise
         else:
             with self._lock:
@@ -133,7 +135,7 @@ class SougouDictSpider:
     @staticmethod
     def _sanitize(raw: str) -> str:
         return raw.translate(
-            str.maketrans({"/": "-", ",": "-", "|": "-", "\\": "-", "'": "-"})
+            str.maketrans({"/": "-", ",": "-", "|": "-", "\\": "-", "'": "-", ":": "-"})
         )
 
     def _download_page(self, page_url: str, category_path: Path) -> None:
@@ -142,13 +144,16 @@ class SougouDictSpider:
         ).select("div.dict_detail_block"):
             title_div = dict_td.select_one("div.detail_title")
             dict_td_title = title_div.select_one("a") if title_div is not None else None
+            dict_td_title_href = (
+                dict_td_title.get("href") if dict_td_title is not None else ""
+            )
             dict_td_id = (
-                str(dict_td_title.get("href")) if dict_td_title is not None else ""
+                dict_td_title_href if isinstance(dict_td_title_href, str) else ""
             ).rpartition("/")[-1]
             if dict_td_id not in self._exclude_list:
                 dl_div = dict_td.select_one("div.dict_dl_btn")
                 dl_a = dl_div.select_one("a") if dl_div is not None else None
-                href = dl_a.get("href") or "" if dl_a is not None else ""
+                dl_a_href = dl_a.get("href") if dl_a is not None else ""
                 self._submit(
                     self._download,
                     SougouDictSpider._sanitize(
@@ -157,7 +162,7 @@ class SougouDictSpider:
                     + "_"
                     + dict_td_id
                     + ".scel",
-                    href if isinstance(href, str) else "",
+                    dl_a_href if isinstance(dl_a_href, str) else "",
                     category_path,
                 )
 
@@ -208,11 +213,10 @@ class SougouDictSpider:
         (self._save_path / "城市信息大全_167").mkdir(parents=True, exist_ok=True)
         for category_td in soup.select("div.citylistcate"):
             a_tag = category_td.select_one("a")
+            a_tag_href = a_tag.get("href") if a_tag is not None else ""
             self._submit(
                 self._download_category,
-                (str(a_tag.get("href")) if a_tag is not None else "").rpartition("/")[
-                    -1
-                ],
+                (a_tag_href if isinstance(a_tag_href, str) else "").rpartition("/")[-1],
                 sub_of_category_167=True,
             )
 
@@ -234,6 +238,10 @@ class SougouDictSpider:
             dict_td_title = title_div.select_one("a") if title_div is not None else None
             dl_div = dict_td.select_one("div.rcmd_dict_dl_btn")
             dl_a = dl_div.select_one("a") if dl_div is not None else None
+            dl_td_title_href = (
+                dict_td_title.get("href") if dict_td_title is not None else ""
+            )
+            dl_a_href = dl_a.get("href") if dl_a is not None else ""
             self._submit(
                 self._download,
                 SougouDictSpider._sanitize(
@@ -241,10 +249,10 @@ class SougouDictSpider:
                 )
                 + "_"
                 + (
-                    str(dict_td_title.get("href")) if dict_td_title is not None else ""
+                    dl_td_title_href if isinstance(dl_td_title_href, str) else ""
                 ).rpartition("/")[-1]
                 + ".scel",
-                "https:" + str(dl_a.get("href")) if dl_a is not None else "",
+                "https:" + (dl_a_href if isinstance(dl_a_href, str) else ""),
                 category_path,
             )
 
@@ -256,7 +264,11 @@ class SougouDictSpider:
                 "0",
                 (
                     (
-                        str(a_tag.get("href"))
+                        (
+                            a_tag_href
+                            if isinstance(a_tag_href := a_tag.get("href"), str)
+                            else ""
+                        )
                         if (a_tag := category.select_one("a")) is not None
                         else ""
                     )
@@ -416,10 +428,22 @@ if __name__ == "__main__":
         default=False,
         help="Output debug info.\nDefault: False",
     )
+    parser.add_argument(
+        "--error",
+        "-E",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Output only error info.\nIgnored if --debug is specified."
+        "\nDefault: False",
+    )
     args = parser.parse_args()
     logging.basicConfig(
         format="%(levelname)s:%(message)s",
-        level=logging.DEBUG if args.debug else logging.INFO,
+        level=logging.DEBUG
+        if args.debug
+        else logging.ERROR
+        if args.error
+        else logging.INFO,
     )
     with SougouDictSpider(
         args.categories,
