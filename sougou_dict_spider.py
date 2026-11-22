@@ -4,7 +4,8 @@ import itertools
 import logging
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, cast
+from urllib.parse import urljoin
 
 import requests
 import tenacity
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
     from concurrent.futures import Future
     from types import TracebackType
+
+    from bs4.element import Tag
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -29,8 +32,6 @@ class SougouDictSpider:
     DEFAULT_MAX_RETRIES = 20
     DEFAULT_TIMEOUT = 60.0
 
-    _MIN_PAGE_CATEGORY = 2
-
     def __init__(
         self,
         categories: Iterable[str] | None = None,
@@ -40,7 +41,7 @@ class SougouDictSpider:
         max_retries: int | None = None,
         timeout: float | None = None,
         *,
-        force: bool = False,
+        force: bool = True,
     ) -> None:
         """
         Initialize a new SougouDictSpider instance.
@@ -151,27 +152,24 @@ class SougouDictSpider:
         for dict_td in BeautifulSoup(
             self._download_html(page_url).text, "html.parser"
         ).select("div.dict_detail_block"):
-            title_div = dict_td.select_one("div.detail_title")
-            dict_td_title = title_div.select_one("a") if title_div is not None else None
-            dict_td_title_href = (
-                dict_td_title.get("href") if dict_td_title is not None else ""
-            )
-            dict_td_id = (
-                dict_td_title_href if isinstance(dict_td_title_href, str) else ""
-            ).rpartition("/")[-1]
+            dict_td_title = cast("Tag", dict_td.select_one("div.detail_title a"))
+            dict_td_id = cast("str", dict_td_title.get("href")).rpartition("/")[-1]
             if dict_td_id not in self._exclude_list:
-                dl_div = dict_td.select_one("div.dict_dl_btn")
-                dl_a = dl_div.select_one("a") if dl_div is not None else None
-                dl_a_href = dl_a.get("href") if dl_a is not None else ""
                 self._submit(
                     self._download,
-                    SougouDictSpider._sanitize(
-                        dict_td_title.string or "" if dict_td_title is not None else ""
-                    )
+                    SougouDictSpider._sanitize(cast("str", dict_td_title.string))
                     + "_"
                     + dict_td_id
                     + ".scel",
-                    dl_a_href if isinstance(dl_a_href, str) else "",
+                    urljoin(
+                        page_url,
+                        cast(
+                            "str",
+                            cast("Tag", dict_td.select_one("div.dict_dl_btn a")).get(
+                                "href"
+                            ),
+                        ),
+                    ),
                     category_path,
                 )
 
@@ -184,34 +182,26 @@ class SougouDictSpider:
         if category == "167":
             self._download_category_167()
             return
-        category_url = "https://pinyin.sogou.com/dict/cate/index/" + category
+        category_url = f"https://pinyin.sogou.com/dict/cate/index/{category}"
         soup = BeautifulSoup(self._download_html(category_url).text, "html.parser")
         if not sub_of_category_167:
-            title_tag = soup.select_one("title")
-            title_text = title_tag.get_text(strip=True) if title_tag is not None else ""
             category_path = self._save_path / (
-                title_text.partition("_")[0] + "_" + category
+                cast("Tag", soup.select_one("title"))
+                .get_text(strip=True)
+                .partition("_")[0]
+                + f"_{category}"
             )
             category_path.mkdir(parents=True, exist_ok=True)
         else:
             category_path = self._save_path / "城市信息大全_167"
-        page_list = soup.select_one("div#dict_page_list")
-        if page_list is None:
-            page_n = SougouDictSpider._MIN_PAGE_CATEGORY
-        else:
-            pages = page_list.select("a")
-            if len(pages) < SougouDictSpider._MIN_PAGE_CATEGORY:
-                page_n = SougouDictSpider._MIN_PAGE_CATEGORY
-            else:
-                try:
-                    page_n = int(pages[-2].get_text(strip=True)) + 1
-                except TypeError, ValueError:
-                    page_n = SougouDictSpider._MIN_PAGE_CATEGORY
+        pages = soup.select("div#dict_page_list a")
+        try:
+            page_n = int(pages[-2].get_text(strip=True)) + 1
+        except IndexError, TypeError, ValueError:
+            page_n = 2
         for page in range(1, page_n):
             self._submit(
-                self._download_page,
-                category_url + "/default/" + str(page),
-                category_path,
+                self._download_page, f"{category_url}/default/{page}", category_path
             )
 
     def _download_category_167(self) -> None:
@@ -221,19 +211,17 @@ class SougouDictSpider:
         )
         (self._save_path / "城市信息大全_167").mkdir(parents=True, exist_ok=True)
         for category_td in soup.select("div.citylistcate"):
-            a_tag = category_td.select_one("a")
-            a_tag_href = a_tag.get("href") if a_tag is not None else ""
             self._submit(
                 self._download_category,
-                (a_tag_href if isinstance(a_tag_href, str) else "").rpartition("/")[-1],
+                cast(
+                    "str", cast("Tag", category_td.select_one("a")).get("href")
+                ).rpartition("/")[-1],
                 sub_of_category_167=True,
             )
 
     def _download_category_0(self) -> None:
-        soup = BeautifulSoup(
-            self._download_html("https://pinyin.sogou.com/dict/detail/index/4").text,
-            "html.parser",
-        )
+        index_url = "https://pinyin.sogou.com/dict/detail/index/4"
+        soup = BeautifulSoup(self._download_html(index_url).text, "html.parser")
         category_path = self._save_path / "未分类_0"
         category_path.mkdir(parents=True, exist_ok=True)
         self._submit(
@@ -243,25 +231,22 @@ class SougouDictSpider:
             category_path,
         )
         for dict_td in soup.select("div.rcmd_dict"):
-            title_div = dict_td.select_one("div.rcmd_dict_title")
-            dict_td_title = title_div.select_one("a") if title_div is not None else None
-            dl_div = dict_td.select_one("div.rcmd_dict_dl_btn")
-            dl_a = dl_div.select_one("a") if dl_div is not None else None
-            dl_td_title_href = (
-                dict_td_title.get("href") if dict_td_title is not None else ""
-            )
-            dl_a_href = dl_a.get("href") if dl_a is not None else ""
+            dict_td_title = cast("Tag", dict_td.select_one("div.rcmd_dict_title a"))
             self._submit(
                 self._download,
-                SougouDictSpider._sanitize(
-                    dict_td_title.string or "" if dict_td_title is not None else ""
-                )
+                SougouDictSpider._sanitize(cast("str", dict_td_title.string))
                 + "_"
-                + (
-                    dl_td_title_href if isinstance(dl_td_title_href, str) else ""
-                ).rpartition("/")[-1]
+                + cast("str", dict_td_title.get("href")).rpartition("/")[-1]
                 + ".scel",
-                "https:" + (dl_a_href if isinstance(dl_a_href, str) else ""),
+                urljoin(
+                    index_url,
+                    cast(
+                        "str",
+                        cast("Tag", dict_td.select_one("div.rcmd_dict_dl_btn a")).get(
+                            "href"
+                        ),
+                    ),
+                ),
                 category_path,
             )
 
@@ -272,15 +257,7 @@ class SougouDictSpider:
             itertools.chain(
                 "0",
                 (
-                    (
-                        (
-                            a_tag_href
-                            if isinstance(a_tag_href := a_tag.get("href"), str)
-                            else ""
-                        )
-                        if (a_tag := category.select_one("a")) is not None
-                        else ""
-                    )
+                    cast("str", cast("Tag", category.select_one("a")).get("href"))
                     .partition("?")[0]
                     .rpartition("/")[-1]
                     for category in BeautifulSoup(

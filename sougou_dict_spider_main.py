@@ -37,7 +37,7 @@ if __name__ == "__main__":
         "-e",
         nargs="+",
         help="List of dictionary indices to exclude downloading.\n"
-        "Default (nonexistent dictionaries): "
+        "Default (invalid dictionaries): "
         f"{', '.join(sorted(SougouDictSpider.DEFAULT_EXCLUDE_LIST))}",
         metavar="DICTIONARY",
     )
@@ -69,8 +69,8 @@ if __name__ == "__main__":
         "--force",
         "-f",
         action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Force re-download of existing files.\nDefault: False",
+        default=True,
+        help="Force re-download of existing files.\nDefault: True",
     )
     parser.add_argument(
         "--debug",
