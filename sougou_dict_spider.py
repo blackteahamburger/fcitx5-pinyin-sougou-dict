@@ -27,6 +27,12 @@ log.addHandler(logging.NullHandler())
 class SougouDictSpider:
     """A spider for downloading Sougou dictionaries."""
 
+    DEFAULT_SAVE_PATH = Path("sougou_dict")
+    DEFAULT_EXCLUDE_LIST = frozenset(("2775", "15946", "176476"))
+    DEFAULT_MAX_RETRIES = 20
+    DEFAULT_TIMEOUT = 60.0
+    DEFAULT_CONCURRENT_DOWNLOADS = min(32, (os.cpu_count() or 1) * 5)
+
     MIN_PAGE_CATEGORY = 2
 
     def __init__(
@@ -56,20 +62,22 @@ class SougouDictSpider:
             force (bool): If True, force re-download of existing files.
         """
         self._categories = frozenset(categories) if categories is not None else None
-        self._save_path = save_path or Path("sougou_dict")
+        self._save_path = save_path or SougouDictSpider.DEFAULT_SAVE_PATH
         self._exclude_list = (
             frozenset(exclude_list)
             if exclude_list is not None
-            else frozenset(("2775", "15946", "176476"))
+            else SougouDictSpider.DEFAULT_EXCLUDE_LIST
         )
-        self._max_retries = 20 if max_retries is None else max_retries
-        self._timeout = 60.0 if timeout is None else timeout
+        self._max_retries = (
+            SougouDictSpider.DEFAULT_MAX_RETRIES if max_retries is None else max_retries
+        )
+        self._timeout = SougouDictSpider.DEFAULT_TIMEOUT if timeout is None else timeout
         self._force = force
         self._stats = {"downloaded": 0, "skipped": 0, "failed": 0}
         self._thread_local = threading.local()
         self._sessions: list[requests.Session] = []
         self._executor = QueueThreadPoolExecutor(
-            max(1, concurrent_downloads or min(32, (os.cpu_count() or 1) * 5))
+            concurrent_downloads or SougouDictSpider.DEFAULT_CONCURRENT_DOWNLOADS
         )
         self._lock = threading.Lock()
         self._futures: list[Future[object]] = []
@@ -380,7 +388,8 @@ if __name__ == "__main__":
         "--directory",
         "-d",
         type=Path,
-        help="The directory to save Sougou dictionaries.\nDefault: sougou_dict.",
+        help="The directory to save Sougou dictionaries.\n"
+        f"Default: {SougouDictSpider.DEFAULT_SAVE_PATH}",
         metavar="DIR",
     )
     parser.add_argument(
@@ -399,7 +408,8 @@ if __name__ == "__main__":
         "-e",
         nargs="+",
         help="List of dictionary indices to exclude downloading.\n"
-        "Default: 2775, 15946, 176476 (nonexistent dictionaries)",
+        "Default (nonexistent dictionaries): "
+        f"{', '.join(sorted(SougouDictSpider.DEFAULT_EXCLUDE_LIST))}",
         metavar="DICTIONARY",
     )
     parser.add_argument(
@@ -407,21 +417,22 @@ if __name__ == "__main__":
         "-j",
         type=int,
         help="Set the number of parallel downloads.\n"
-        "Default: min(32, (os.cpu_count() or 1) * 5)",
+        f"Default: {SougouDictSpider.DEFAULT_CONCURRENT_DOWNLOADS}",
         metavar="N",
     )
     parser.add_argument(
         "--max-retries",
         "-m",
         type=int,
-        help="Set the maximum number of retries.\nDefault: 20",
+        help="Set the maximum number of retries.\n"
+        f"Default: {SougouDictSpider.DEFAULT_MAX_RETRIES}",
         metavar="N",
     )
     parser.add_argument(
         "--timeout",
         "-t",
         type=float,
-        help="Set timeout in seconds.\nDefault: 60",
+        help=f"Set timeout in seconds.\nDefault: {SougouDictSpider.DEFAULT_TIMEOUT}",
         metavar="SEC",
     )
     parser.add_argument(
