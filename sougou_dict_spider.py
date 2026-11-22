@@ -2,7 +2,6 @@
 
 import itertools
 import logging
-import os
 import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
@@ -29,7 +28,6 @@ class SougouDictSpider:
     DEFAULT_EXCLUDE_LIST = frozenset(("2775", "15946", "176476"))
     DEFAULT_MAX_RETRIES = 20
     DEFAULT_TIMEOUT = 60.0
-    DEFAULT_CONCURRENT_DOWNLOADS = min(32, (os.cpu_count() or 1) * 5)
 
     _MIN_PAGE_CATEGORY = 2
 
@@ -45,19 +43,16 @@ class SougouDictSpider:
         force: bool = False,
     ) -> None:
         """
-        Initialize the SougouDictSpider.
+        Initialize a new SougouDictSpider instance.
 
         Args:
-            categories (Iterable[str] | None):
-                Iterable of category indices to be downloaded.
-            save_path (Path | None): Directory to save dictionaries.
-            exclude_list (Iterable[str] | None):
-                Iterable of dictionary indices to exclude.
-            concurrent_downloads (int | None): Number of parallel downloads.
-            max_retries (int | None): Maximum number of retries for
-                HTTP requests.
-            timeout (float | None): Timeout for HTTP requests in seconds.
-            force (bool): If True, force re-download of existing files.
+            categories: Iterable of category indices to be downloaded.
+            save_path: Directory to save dictionaries.
+            exclude_list: Iterable of dictionary indices to exclude.
+            concurrent_downloads: Number of parallel downloads.
+            max_retries: Maximum number of retries for HTTP requests.
+            timeout: Timeout for HTTP requests in seconds.
+            force: If True, force re-download of existing files.
         """
         self._categories = frozenset(categories) if categories is not None else None
         self._save_path = save_path or SougouDictSpider.DEFAULT_SAVE_PATH
@@ -74,9 +69,7 @@ class SougouDictSpider:
         self._stats = {"downloaded": 0, "skipped": 0, "failed": 0}
         self._thread_local = threading.local()
         self._sessions: list[requests.Session] = []
-        self._executor = QueueThreadPoolExecutor(
-            concurrent_downloads or SougouDictSpider.DEFAULT_CONCURRENT_DOWNLOADS
-        )
+        self._executor = QueueThreadPoolExecutor(concurrent_downloads)
         self._lock = threading.Lock()
         self._futures: list[Future[object]] = []
         self._shutdown = False
@@ -364,12 +357,12 @@ class SougouDictSpider:
         Exit the runtime context and clean up resources.
 
         Args:
-            typ (type[BaseException] | None): Exception type, if any.
-            exc (BaseException | None): Exception instance, if any.
-            tb (TracebackType | None): Traceback, if any.
+            typ: Exception type, if any.
+            exc: Exception instance, if any.
+            tb: Traceback, if any.
 
         Returns:
-            bool: False to indicate that exceptions should not be suppressed.
+            False to indicate that exceptions should not be suppressed.
         """
         self.shutdown()
         return False
