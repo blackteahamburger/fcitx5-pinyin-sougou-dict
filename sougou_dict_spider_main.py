@@ -69,8 +69,9 @@ if __name__ == "__main__":
         "--force",
         "-f",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Force re-download of existing files.\nDefault: True",
+        default=SougouDictSpider.DEFAULT_FORCE,
+        help="Force re-download of existing files.\n"
+        f"Default: {SougouDictSpider.DEFAULT_FORCE}",
     )
     parser.add_argument(
         "--debug",
