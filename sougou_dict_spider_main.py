@@ -45,8 +45,7 @@ if __name__ == "__main__":
         "-j",
         type=int,
         help="Set the number of parallel downloads.\n"
-        "Default: min(32, (os.process_cpu_count() or 1) + 4) "
-        f"({SougouDictSpider.DEFAULT_CONCURRENT_DOWNLOADS})",
+        f"Default: {SougouDictSpider.DEFAULT_CONCURRENT_DOWNLOADS}",
         metavar="N",
     )
     parser.add_argument(
