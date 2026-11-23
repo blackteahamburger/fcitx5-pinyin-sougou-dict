@@ -2,25 +2,29 @@
 
 import itertools
 import logging
+import os
 import threading
+from concurrent.futures import Executor
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from queue import Queue
+from threading import Thread
+from typing import Any, Self
 from urllib.parse import urljoin
+lazy from collections.abc import Callable, Iterable
+lazy from concurrent.futures import Future
+lazy from types import TracebackType
 
 import requests
 import tenacity
 from bs4 import BeautifulSoup, Tag
 from typeguard import check_type
 
-from queue_thread_pool_executor import QueueThreadPoolExecutor
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
-    from concurrent.futures import Future
-    from types import TracebackType
-
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
+
+
+class DownloadError(RuntimeError):
+    """Exception raised if any exceptions occurred during the download process."""
 
 
 class SougouDictSpider:
@@ -30,7 +34,68 @@ class SougouDictSpider:
     DEFAULT_EXCLUDE_LIST = frozenset(("2775", "15946", "176476"))
     DEFAULT_MAX_RETRIES = 20
     DEFAULT_TIMEOUT = 60.0
+    DEFAULT_CONCURRENT_DOWNLOADS = (os.process_cpu_count() or 1) + 4
     DEFAULT_FORCE = False
+
+    class _ThreadPoolExecutor(Executor):
+        def __init__(self, max_workers: int | None = None) -> None:
+            if max_workers is None:
+                max_workers = SougouDictSpider.DEFAULT_CONCURRENT_DOWNLOADS
+            if max_workers <= 0:
+                msg = "max_workers must be greater than 0"
+                raise ValueError(msg)
+            self._max_workers = max_workers
+            self._task_queue: Queue[
+                tuple[
+                    Callable[..., object],
+                    tuple[object, ...],
+                    dict[str, object],
+                    Future[Any],
+                ]
+                | None
+            ] = Queue()
+            for _ in range(self._max_workers):
+                Thread(target=self._executor, daemon=True).start()
+
+        def shutdown(
+            self,
+            wait: bool = True,  # ruff: ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
+            *,
+            cancel_futures: bool = False,
+        ) -> None:
+            if cancel_futures:
+                raise NotImplementedError
+            if wait:
+                self._task_queue.join()
+            for _ in range(self._max_workers):
+                self._task_queue.put(None)
+                if wait:
+                    self._task_queue.join()
+
+        def submit[**P, T](
+            self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs
+        ) -> Future[T]:
+            future: Future[T] = Future()
+            self._task_queue.put((fn, args, kwargs, future))
+            return future
+
+        def _executor(self) -> None:
+            while True:
+                task = self._task_queue.get()
+                if task is None:
+                    self._task_queue.task_done()
+                    return
+                fn, args, kwargs, future = task
+                try:
+                    if not future.set_running_or_notify_cancel():
+                        continue
+                    result = fn(*args, **kwargs)
+                except BaseException as exc:  # ruff: ignore[blind-except]
+                    future.set_exception(exc)
+                else:
+                    future.set_result(result)
+                finally:
+                    self._task_queue.task_done()
 
     def __init__(
         self,
@@ -67,19 +132,26 @@ class SougouDictSpider:
         )
         self._timeout = SougouDictSpider.DEFAULT_TIMEOUT if timeout is None else timeout
         self._force = force
-        self._stats = {"downloaded": 0, "skipped": 0, "failed": 0}
+        self._count = 0
         self._thread_local = threading.local()
         self._sessions: list[requests.Session] = []
-        self._executor = QueueThreadPoolExecutor(concurrent_downloads)
+        self._executor = SougouDictSpider._ThreadPoolExecutor(concurrent_downloads)
         self._lock = threading.Lock()
-        self._futures: list[Future[object]] = []
+        self._exceptions: list[BaseException] = []
         self._shutdown = False
+
+    def _record_exception[T](self, future: Future[T]) -> None:
+        exception = future.exception()
+        if exception is not None:
+            with self._lock:
+                self._exceptions.append(exception)
 
     def _submit[**P, T](
         self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs
     ) -> None:
-        with self._lock:
-            self._futures.append(self._executor.submit(fn, *args, **kwargs))
+        self._executor.submit(fn, *args, **kwargs).add_done_callback(
+            self._record_exception
+        )
 
     def _get_session(self) -> requests.Session:
         session = getattr(self._thread_local, "session", None)
@@ -115,21 +187,19 @@ class SougouDictSpider:
     def _download(self, name: str, url: str, category_path: Path) -> None:
         file_path = category_path / name
         if not self._force and file_path.is_file():
-            log.warning("%s already exists, skipping...", file_path)
             with self._lock:
-                self._stats["skipped"] += 1
+                self._count += 1
+            log.warning("%s already exists, skipping...", file_path)
             return
         try:
             file_path.write_bytes(self._download_html(url).content)
         except Exception as e:
-            with self._lock:
-                self._stats["failed"] += 1
             if isinstance(e, OSError):
                 log.exception("Failed to save to %s", file_path)
             raise
         else:
             with self._lock:
-                self._stats["downloaded"] += 1
+                self._count += 1
             log.info("%s downloaded successfully.", name)
 
     @staticmethod
@@ -197,7 +267,7 @@ class SougouDictSpider:
         pages = soup.select("div#dict_page_list a")
         try:
             page_n = int(pages[-2].get_text(strip=True)) + 1
-        except IndexError, TypeError, ValueError:
+        except IndexError, ValueError:
             page_n = 2
         for page in range(1, page_n):
             self._submit(
@@ -284,41 +354,37 @@ class SougouDictSpider:
         for category in self._download_category_list():
             self._submit(self._download_category, category)
 
-    def _report_stats(self) -> int:
-        log.info("")
-        log.info("---- Dictionary Download Summary ----")
-        log.info("downloaded=%d", self._stats["downloaded"])
-        log.info("skipped=%d", self._stats["skipped"])
-        log.info("failed=%d", self._stats["failed"])
-        log.info("")
+    def _report_stats(self) -> None:
+        log.info("Successfully downloaded/skipped %d dictionaries.", self._count)
+        if not self._exceptions:
+            return
         log.info("---- Detailed Exception Summary ----")
-        failures = 0
-        for future in self._futures:
-            exception = future.exception()
-            if exception is not None:
-                failures += 1
-                log.error("[%d] %s", failures, exception)
-        if not failures:
-            log.info("No exceptions occurred during the download process.")
-        return failures
+        for exception in self._exceptions:
+            log.error("", exc_info=exception)
 
     def shutdown(self) -> None:
-        """
-        Shutdown the spider.
-
-        Raises:
-            RuntimeError: If there were failures during the download process.
-        """
+        """Shutdown the spider."""
         if self._shutdown:
             return
         self._shutdown = True
         self._executor.shutdown(wait=True)
         for s in self._sessions:
             s.close()
-        failures = self._report_stats()
-        if failures:
-            msg = f"Downloading finished with {failures} failures."
-            raise RuntimeError(msg)
+        self._report_stats()
+
+    def raise_for_exceptions(self) -> None:
+        """
+        Raise a DownloadError if any exceptions occurred during the download process.
+
+        Raises:
+            DownloadError: If any exceptions occurred during the download process.
+        """
+        if self._exceptions:
+            msg = (
+                f"{len(self._exceptions)} exceptions occurred "
+                "during the download process."
+            )
+            raise DownloadError(msg)
 
     def __enter__(self) -> Self:
         """

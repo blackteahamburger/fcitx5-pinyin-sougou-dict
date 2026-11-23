@@ -4,7 +4,6 @@
 if __name__ == "__main__":
     import argparse
     import logging
-    import os
     from pathlib import Path
 
     from sougou_dict_spider import SougouDictSpider
@@ -47,7 +46,7 @@ if __name__ == "__main__":
         type=int,
         help="Set the number of parallel downloads.\n"
         "Default: min(32, (os.process_cpu_count() or 1) + 4) "
-        f"({min(32, (os.process_cpu_count() or 1) + 4)})",
+        f"({SougouDictSpider.DEFAULT_CONCURRENT_DOWNLOADS})",
         metavar="N",
     )
     parser.add_argument(
@@ -107,3 +106,4 @@ if __name__ == "__main__":
         force=args.force,
     ) as dict_spider:
         dict_spider.download_dicts()
+    dict_spider.raise_for_exceptions()
