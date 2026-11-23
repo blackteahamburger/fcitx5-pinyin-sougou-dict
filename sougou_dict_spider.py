@@ -4,14 +4,13 @@ import itertools
 import logging
 import os
 import threading
-from concurrent.futures import Executor
+from concurrent.futures import Executor, Future
 from pathlib import Path
 from queue import Queue
 from threading import Thread
 from typing import Any, Self
 from urllib.parse import urljoin
 lazy from collections.abc import Callable, Iterable
-lazy from concurrent.futures import Future
 lazy from types import TracebackType
 
 import requests
